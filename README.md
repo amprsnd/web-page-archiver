@@ -14,6 +14,36 @@ this package can make web archives from local files and URI's
 * Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
 * Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
 
+## Example
+
+```ruby
+
+#rails use
+#URI or file
+require 'web_page_archiver'
+
+uri = 'http://murb.github.com/web-page-archiver/static/'
+
+result_a = WebPageArchiver::MhtmlGenerator.generate(uri, true)
+result_b = WebPageArchiver::DataUriHtmlGenerator.generate(uri, true)
+
+```
+
+or
+
+```ruby
+
+#rails use
+#Inline HTML
+require 'web_page_archiver'
+
+inline_html = '<html><head><title>Inline</title></head><body><h1>Hello, World!</h1></body></html>'
+
+result_a = WebPageArchiver::MhtmlGenerator.generate(inline_html, false)
+result_b = WebPageArchiver::DataUriHtmlGenerator.generate(inline_html, false)
+
+```
+
 ## Copyright
 
 Copyright (c) 2012 murb. See LICENSE.txt for further details.

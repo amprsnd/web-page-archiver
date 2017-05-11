@@ -19,7 +19,7 @@ module WebPageArchiver
       @boundary = "mimepart_#{Digest::MD5.hexdigest(Time.now.to_s)}"
       @threads  = []
       @queue    = Queue.new
-      @conf     = { :base64_except=>["html"] }
+      @conf     = { :base64_except=>['html'] }
     end
     
     # Creates a absolute URI-string for referenced resources in base file name
@@ -29,7 +29,7 @@ module WebPageArchiver
     # @return [String] URI-string
     def join_uri(base_filename_or_uri, path)
       stream = open(base_filename_or_uri)
-      joined = ""
+      joined = ''
       if stream.is_a? File
         base_filename_or_uri = base_filename_or_uri.path if base_filename_or_uri.is_a? File
         
@@ -59,7 +59,7 @@ module WebPageArchiver
       if object.is_a? File
         return MIME::Types.type_for(object.path).first
       else
-        return object.meta["content-type"]
+        return object.meta['content-type']
       end
     end
     
@@ -101,30 +101,40 @@ module WebPageArchiver
     # 
     # @param [String, URI] filename_or_uri to test for
     # @return [String] text blob containing the result
-    def MhtmlGenerator.generate(filename_or_uri)
+    def MhtmlGenerator.generate(filename_or_uri, is_file)
       generator = MhtmlGenerator.new
-      return generator.convert(filename_or_uri)
+      return generator.convert(filename_or_uri, is_file)
     end
     
     # convert object at uri to self-contained text-file
     # 
     # @param [String, URI] filename_or_uri to test for
     # @return [String] text blob containing the result    
-    def convert(filename_or_uri)
-        f = open(filename_or_uri)
-        html = f.read
+    def convert(filename_or_uri, is_file)
+
+        if is_file
+
+          f = open(filename_or_uri)
+          html = f.read
+
+        else
+
+          html = filename_or_uri
+
+        end
+
         @parser = Nokogiri::HTML html
-        @src.puts "Subject: " + @parser.search("title").text()
+        @src.puts 'Subject: ' + @parser.search('title').text()
         @src.puts "Content-Type: multipart/related; boundary=#{@boundary}"
         @src.puts "Content-Location: #{filename_or_uri}"
         @src.puts "Date: #{Time.now.to_s}"
-        @src.puts "MIME-Version: 1.0"
-        @src.puts ""
-        @src.puts "mime mhtml content"
-        @src.puts ""
+        @src.puts 'MIME-Version: 1.0'
+        @src.puts ''
+        @src.puts 'mime mhtml content'
+        @src.puts ''
         #imgs
         @parser.search('img').each{|i| 
-            uri = i.attr('src');
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri).to_s
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri}
@@ -132,7 +142,7 @@ module WebPageArchiver
           }
         #styles
         @parser.search('link[rel=stylesheet]').each{|i|
-            uri = i.attr('href');
+            uri = i.attr('href')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri}
@@ -140,25 +150,25 @@ module WebPageArchiver
           }
         #scripts
         @parser.search('script').map{ |i|
-            next unless i.attr('src');
-            uri = i.attr('src');
+            next unless i.attr('src')
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri}
             i.set_attribute('src',"cid:#{uid}")
         }
         @src.puts "--#{@boundary}"
-        @src.puts "Content-Disposition: inline; filename=default.htm"
+        @src.puts 'Content-Disposition: inline; filename=default.htm'
         @src.puts "Content-Type: #{content_type(f)}"
         @src.puts "Content-Id: #{Digest::MD5.hexdigest(filename_or_uri)}"
         @src.puts "Content-Location: #{filename_or_uri}"
-        @src.puts "Content-Transfer-Encoding: 8bit" if @conf[:base64_except].find("html")
-        @src.puts "Content-Transfer-Encoding: Base64" unless @conf[:base64_except].find("html")
-        @src.puts ""
+        @src.puts 'Content-Transfer-Encoding: 8bit' if @conf[:base64_except].find('html')
+        @src.puts 'Content-Transfer-Encoding: Base64' unless @conf[:base64_except].find('html')
+        @src.puts ''
         #@src.puts html
-        @src.puts "#{html}"                      if @conf[:base64_except].find("html")
+        @src.puts "#{html}"                      if @conf[:base64_except].find('html')
         #@src.puts "#{Base64.encode64(html)}" unless @conf[:base64_except].find("html")
-        @src.puts ""
+        @src.puts ''
         self.attach_contents
         @src.puts "--#{@boundary}--"
         @src.rewind
@@ -208,19 +218,31 @@ module WebPageArchiver
     # 
     # @param [String, URI] filename_or_uri to test for
     # @return [String] text blob containing the result
-    def DataUriHtmlGenerator.generate(filename_or_uri)
-      generateror = DataUriHtmlGenerator.new
-      return generateror.convert(filename_or_uri)
+    def DataUriHtmlGenerator.generate(filename_or_uri, is_file)
+      generator = DataUriHtmlGenerator.new
+      return generator.convert(filename_or_uri, is_file)
     end
 
     # convert object at uri to self-contained text-file
     # 
     # @param [String, URI] filename_or_uri to test for
     # @return [String] text blob containing the result    
-    def convert(filename_or_uri)
-        @parser = Nokogiri::HTML(open(filename_or_uri))
+    def convert(filename_or_uri, is_file)
+
+        if is_file
+
+          f = open(filename_or_uri)
+          html = f.read
+
+        else
+
+          html = filename_or_uri
+
+        end
+
+        @parser = Nokogiri::HTML(html)
         @parser.search('img').each{|i| 
-            uri = i.attr('src');
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri).to_s
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'src'}
@@ -228,7 +250,7 @@ module WebPageArchiver
           }
         #styles
         @parser.search('link[rel=stylesheet]').each{|i|
-            uri = i.attr('href');
+            uri = i.attr('href')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'href'}
@@ -236,8 +258,8 @@ module WebPageArchiver
           }
         #scripts
         @parser.search('script').map{ |i|
-            next unless i.attr('src');
-            uri = i.attr('src');
+            next unless i.attr('src')
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'src'}
@@ -290,7 +312,7 @@ module WebPageArchiver
     def convert(filename_or_uri)
         @parser = Nokogiri::HTML(open(filename_or_uri))
         @parser.search('img').each{|i| 
-            uri = i.attr('src');
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri).to_s
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'src'}
@@ -298,7 +320,7 @@ module WebPageArchiver
           }
         #styles
         @parser.search('link[rel=stylesheet]').each{|i|
-            uri = i.attr('href');
+            uri = i.attr('href')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'href'}
@@ -306,8 +328,8 @@ module WebPageArchiver
           }
         #scripts
         @parser.search('script').map{ |i|
-            next unless i.attr('src');
-            uri = i.attr('src');
+            next unless i.attr('src')
+            uri = i.attr('src')
             uri = join_uri( filename_or_uri, uri)
             uid = Digest::MD5.hexdigest(uri)
             @contents[uid] = {:uri=>uri, :parser_ref=>i, :attribute_name=>'src'}
@@ -332,7 +354,7 @@ module WebPageArchiver
           content_type=v[:content_type]
           tag.content=v[:body]
           tag.remove_attribute(v[:attribute_name])
-        elsif tag.name == "link" and v[:content_type]="text/css"
+        elsif tag.name == 'link' and v[:content_type]='text/css'
           tag.after("<style type=\"text/css\">#{v[:body]}</style>")
           tag.remove()
         else
